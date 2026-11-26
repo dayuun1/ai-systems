@@ -1,0 +1,7 @@
+variant,ckpt_path,best_iter,best_val_loss,final_train_loss,final_val_loss,section,model_name,task,accuracy,notes
+v1_compact_ctx64_L2_H4,/lab3/models/minigpt_v1.pt,2499.0,4.8376,4.6326,4.8376,,,,,
+v2_deeper_ctx128_L4_H8,/lab3/models/minigpt_v2.pt,2499.0,4.015,3.6617,4.015,,,,,
+v3_wide_ctx256_L6_H8,/lab3/models/minigpt_v3.pt,2499.0,3.8793,3.4647,3.8793,,,,,
+,,,,,,section_5_zero_shot,MoritzLaurer/mDeBERTa-v3-base-mnli-xnli,zero-shot-classification (uk),0.8125,Найкраща якість на українському тексті (multi_label=False)
+,,,,,,section_5_zero_shot,joeddav/xlm-roberta-large-xnli,zero-shot-classification (uk),0.75,"Важча модель (large), повільніший інференс, трохи нижча точність"
+,,,,,,section_5_zero_shot,facebook/bart-large-mnli,zero-shot-classification (uk),0.375,"Англомовна модель, слабко розуміє український контекст"
