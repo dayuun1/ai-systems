@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D&D 5e Encounter & NPC Builder — Local LLM Master Assistant</title>
+    <style>
+      :root {
+        --bg: #12100e;
+        --card: #1c1917;
+        --panel: #292524;
+        --border: #44403c;
+        --text: #f5f5f4;
+        --muted: #a8a29e;
+        --accent: #d97706;
+        --accent-hover: #b45309;
+        --crimson: #991b1b;
+        --ok: #22c55e;
+        --err: #ef4444;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+      }
+      .container {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.45rem;
+        color: #fbbf24;
+      }
+      .subtitle {
+        font-size: 0.86rem;
+        color: var(--muted);
+      }
+      .badge {
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        background: var(--panel);
+        border: 1px solid var(--border);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+      @media (max-width: 880px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px;
+      }
+      .card h2 {
+        margin: 0 0 14px;
+        font-size: 1.05rem;
+        color: #fde68a;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+      }
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .tab-btn {
+        padding: 8px 6px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: 0.15s;
+      }
+      .tab-btn.active {
+        background: var(--accent);
+        color: #12100e;
+        border-color: var(--accent);
+      }
+      label {
+        display: block;
+        font-size: 0.84rem;
+        color: var(--muted);
+        margin-bottom: 4px;
+        margin-top: 10px;
+      }
+      select,
+      input,
+      textarea {
+        width: 100%;
+        padding: 9px 11px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #0c0a09;
+        color: var(--text);
+        font-size: 0.92rem;
+        font-family: inherit;
+      }
+      .row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.92rem;
+        transition: 0.15s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #12100e;
+        width: 100%;
+        margin-top: 16px;
+        font-size: 1rem;
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn-secondary {
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+      .btn-secondary:hover {
+        border-color: var(--accent);
+      }
+      .btn-stop {
+        background: var(--crimson);
+        color: #fff;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        display: none;
+      }
+      .output-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .metrics {
+        font-size: 0.82rem;
+        color: #fbbf24;
+        font-family: monospace;
+      }
+      #output {
+        white-space: pre-wrap;
+        background: #0c0a09;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        min-height: 440px;
+        font-size: 0.94rem;
+      }
+      .spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #12100e;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .hint {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div>
+          <h1>D&D 5e Encounter & NPC Builder</h1>
+          <div class="subtitle">
+            Локальний помічник Майстра Підземель (FastAPI + Ollama OpenAI API)
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="checkOllama()"
+          >
+            Оновити моделі
+          </button>
+          <div id="ollamaStatus" class="badge">Перевірка Ollama...</div>
+        </div>
+      </header>
+
+      <div class="grid">
+        <div class="card">
+          <h2>1. Режим генерації</h2>
+          <div class="tabs">
+            <button
+              type="button"
+              class="tab-btn active"
+              id="tab-encounter"
+              onclick="setMode('encounter')"
+            >
+              Бій / Енкаунтер
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              id="tab-npc"
+              onclick="setMode('npc')"
+            >
+              Генератор NPC
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              id="tab-rules"
+              onclick="setMode('rules')"
+            >
+              Арбітр правил
+            </button>
+          </div>
+
+          <div id="form-encounter">
+            <div class="row-2">
+              <div>
+                <label for="partyLevel">Рівень партії (1–20)</label>
+                <input
+                  id="partyLevel"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value="2"
+                />
+              </div>
+              <div>
+                <label for="partySize">Кількість гравців</label>
+                <input id="partySize" type="number" min="1" max="8" value="4" />
+              </div>
+            </div>
+
+            <div class="row-2">
+              <div>
+                <label for="difficulty">Складність бою</label>
+                <select id="difficulty">
+                  <option value="Легка (Easy)">Легка (Easy)</option>
+                  <option value="Середня (Medium)" selected>
+                    Середня (Medium)
+                  </option>
+                  <option value="Важка (Hard)">Важка (Hard)</option>
+                  <option value="Смертельна (Deadly)">
+                    Смертельна (Deadly)
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label for="biome">Локація / Біом</label>
+                <select id="biome">
+                  <option value="Закинутий портовий склад у тумані">
+                    Портовий склад у тумані
+                  </option>
+                  <option value="Стародавні руїни в лісі">
+                    Стародавні руїни в лісі
+                  </option>
+                  <option value="Підземелля під таверною">
+                    Підземелля під таверною
+                  </option>
+                  <option value="Гірський перевал під час бурі">
+                    Гірський перевал
+                  </option>
+                  <option value="Затонулий корабель контрабандистів">
+                    Затонулий корабель
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <label for="partyNotes">Склад партії / особливі умови</label>
+            <textarea
+              id="partyNotes"
+              rows="2"
+              placeholder="Наприклад: у партії є воїн-гіфф з мушкетом, клірик та плут..."
+            ></textarea>
+          </div>
+
+          <div id="form-npc" style="display: none">
+            <div class="row-2">
+              <div>
+                <label for="npcRace">Раса NPC</label>
+                <select id="npcRace">
+                  <option value="Людина">Людина</option>
+                  <option value="Гіфф (Giff)">Гіфф (Giff)</option>
+                  <option value="Дварф">Дварф</option>
+                  <option value="Ельф">Ельф</option>
+                  <option value="Тифлінг">Тифлінг</option>
+                  <option value="Гоблін">Гоблін</option>
+                </select>
+              </div>
+              <div>
+                <label for="npcRole">Роль / Професія</label>
+                <input id="npcRole" type="text" value="Контрабандист-зброяр" />
+              </div>
+            </div>
+            <label for="npcMood">Характер та мотивація</label>
+            <textarea id="npcMood" rows="2">
+Підозрілий, але поважає силу; шукає зниклий вантаж пороху.</textarea
+            >
+          </div>
+
+          <div id="form-rules" style="display: none">
+            <label for="ruleQuestion"
+              >Спірна ситуація за столом (D&D 5e PHB/DMG)</label
+            >
+            <textarea
+              id="ruleQuestion"
+              rows="4"
+              placeholder="Опишіть ситуацію в бою чи поза ним..."
+            >
+Воїн 2-го рівня з мушкетом (властивість Loading) використовує Action Surge у свій хід. Скільки пострілів він може зробити за цей хід за правилами D&D 5e?</textarea
+            >
+          </div>
+
+          <label>Швидкі пресети для тестування:</label>
+          <div class="presets">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="loadPreset('port')"
+            >
+              Портова засідка (Lvl 2)
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="loadPreset('boss')"
+            >
+              Лігво некроманта (Lvl 5)
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="loadPreset('npc')"
+            >
+              NPC Зброяр-Гіфф
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="loadPreset('rule')"
+            >
+              Правило Loading + Action Surge
+            </button>
+          </div>
+
+          <h2 style="margin-top: 18px">2. Параметри локальної LLM</h2>
+          <div class="row-2">
+            <div>
+              <label for="modelSelect">Модель Ollama</label>
+              <select id="modelSelect"></select>
+            </div>
+            <div>
+              <label for="tempInput">Temperature</label>
+              <input
+                id="tempInput"
+                type="number"
+                step="0.05"
+                min="0"
+                max="1.5"
+                value="0.65"
+              />
+            </div>
+          </div>
+          <div class="hint">
+            Для генерації пригод рекомендовано 0.6–0.7, для правил — 0.1–0.2.
+          </div>
+
+          <div class="row-2">
+            <div>
+              <label for="maxTokensInput">Max Tokens (ліміт)</label>
+              <input
+                id="maxTokensInput"
+                type="number"
+                step="50"
+                min="100"
+                max="4096"
+                value="950"
+              />
+            </div>
+            <div>
+              <label for="ctxInput">Context Length (num_ctx)</label>
+              <input
+                id="ctxInput"
+                type="number"
+                step="512"
+                min="1024"
+                max="32768"
+                value="4096"
+              />
+            </div>
+          </div>
+
+          <button
+            id="genBtn"
+            type="button"
+            class="btn btn-primary"
+            onclick="generate()"
+          >
+            <span id="spinner" class="spinner"></span>
+            <span id="btnText">Згенерувати сцену</span>
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="output-header">
+            <strong style="color: #fde68a"
+              >Нотатки Майстра (вивід моделі):</strong
+            >
+            <div style="display: flex; gap: 10px; align-items: center">
+              <span id="metrics" class="metrics">Готово до роботи</span>
+              <button
+                id="stopBtn"
+                type="button"
+                class="btn btn-stop"
+                onclick="stopGeneration()"
+              >
+                Зупинити
+              </button>
+            </div>
+          </div>
+          <div id="output">
+            Оберіть режим зліва, налаштуйте параметри партії та натисніть
+            «Згенерувати сцену».
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentMode = "encounter";
+      let abortController = null;
+
+      async function checkOllama() {
+        const statusEl = document.getElementById("ollamaStatus");
+        const modelSelect = document.getElementById("modelSelect");
+        try {
+          const res = await fetch("/api/health");
+          const data = await res.json();
+          modelSelect.innerHTML = "";
+          (data.models || []).forEach((m) => {
+            const opt = document.createElement("option");
+            opt.value = m;
+            opt.textContent = m;
+            modelSelect.appendChild(opt);
+          });
+          if (data.ok) {
+            statusEl.textContent = "Ollama: Online";
+            statusEl.style.color = "var(--ok)";
+          } else {
+            statusEl.textContent = "Ollama: Offline";
+            statusEl.style.color = "var(--err)";
+          }
+        } catch (e) {
+          statusEl.textContent = "Сервер недоступний";
+          statusEl.style.color = "var(--err)";
+        }
+      }
+
+      function setMode(mode) {
+        currentMode = mode;
+        ["encounter", "npc", "rules"].forEach((m) => {
+          document
+            .getElementById(`tab-${m}`)
+            .classList.toggle("active", m === mode);
+          document.getElementById(`form-${m}`).style.display =
+            m === mode ? "block" : "none";
+        });
+        const tempInput = document.getElementById("tempInput");
+        const btnText = document.getElementById("btnText");
+        if (mode === "rules") {
+          tempInput.value = "0.15";
+          btnText.textContent = "Перевірити за правилами 5e";
+        } else if (mode === "npc") {
+          tempInput.value = "0.70";
+          btnText.textContent = "Створити NPC";
+        } else {
+          tempInput.value = "0.65";
+          btnText.textContent = "Згенерувати сцену";
+        }
+      }
+
+      function loadPreset(type) {
+        if (type === "port") {
+          setMode("encounter");
+          document.getElementById("partyLevel").value = 2;
+          document.getElementById("partySize").value = 4;
+          document.getElementById("difficulty").value = "Середня (Medium)";
+          document.getElementById("biome").value =
+            "Закинутий портовий склад у тумані";
+          document.getElementById("partyNotes").value =
+            "У партії є воїн-гіфф 2-го рівня з мушкетом, клірик, чарівник та плут.";
+        } else if (type === "boss") {
+          setMode("encounter");
+          document.getElementById("partyLevel").value = 5;
+          document.getElementById("partySize").value = 4;
+          document.getElementById("difficulty").value = "Смертельна (Deadly)";
+          document.getElementById("biome").value = "Стародавні руїни в лісі";
+          document.getElementById("partyNotes").value =
+            "Фінальний бій арки, у партії мало слотів заклинань, потрібні інтерактивні укриття на арені.";
+        } else if (type === "npc") {
+          setMode("npc");
+          document.getElementById("npcRace").value = "Гіфф (Giff)";
+          document.getElementById("npcRole").value =
+            "Відставний артилерист та торговець порохом";
+          document.getElementById("npcMood").value =
+            "Говорить військовими термінами, обожнює вогнепальну зброю, має борг перед гільдією.";
+        } else if (type === "rule") {
+          setMode("rules");
+          document.getElementById("ruleQuestion").value =
+            "Воїн 2-го рівня з мушкетом (властивість Loading) використовує Action Surge у свій хід. Скільки пострілів він може зробити за цей хід за правилами D&D 5e?";
+        }
+      }
+
+      function stopGeneration() {
+        if (abortController) {
+          abortController.abort();
+          abortController = null;
+        }
+      }
+
+      async function generate() {
+        const btn = document.getElementById("genBtn");
+        const stopBtn = document.getElementById("stopBtn");
+        const spinner = document.getElementById("spinner");
+        const btnText = document.getElementById("btnText");
+        const output = document.getElementById("output");
+        const metrics = document.getElementById("metrics");
+
+        const payload = {
+          mode: currentMode,
+          model: document.getElementById("modelSelect").value,
+          temperature: parseFloat(document.getElementById("tempInput").value),
+          max_tokens: parseInt(
+            document.getElementById("maxTokensInput").value,
+            10,
+          ),
+          num_ctx: parseInt(document.getElementById("ctxInput").value, 10),
+          party_level: parseInt(
+            document.getElementById("partyLevel").value,
+            10,
+          ),
+          party_size: parseInt(document.getElementById("partySize").value, 10),
+          difficulty: document.getElementById("difficulty").value,
+          biome: document.getElementById("biome").value,
+          party_notes: document.getElementById("partyNotes").value,
+          npc_race: document.getElementById("npcRace").value,
+          npc_role: document.getElementById("npcRole").value,
+          npc_mood: document.getElementById("npcMood").value,
+          rule_question: document.getElementById("ruleQuestion").value,
+        };
+
+        abortController = new AbortController();
+        btn.disabled = true;
+        stopBtn.style.display = "inline-flex";
+        spinner.style.display = "inline-block";
+        const prevBtnLabel = btnText.textContent;
+        btnText.textContent = "Генерація...";
+        output.textContent = "";
+        metrics.textContent = "Очікування першого токена (TTFT)...";
+
+        const t0 = performance.now();
+        let firstToken = null;
+        let chunks = 0;
+
+        try {
+          const res = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: abortController.signal,
+            body: JSON.stringify(payload),
+          });
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const text = decoder.decode(value, { stream: true });
+            if (text) {
+              if (firstToken === null) firstToken = performance.now();
+              output.textContent += text;
+              chunks++;
+              const ttft = ((firstToken - t0) / 1000).toFixed(2);
+              const genSec = (performance.now() - firstToken) / 1000;
+              const speed = genSec > 0 ? (chunks / genSec).toFixed(1) : "0.0";
+              metrics.textContent = `TTFT: ${ttft} с | Швидкість: ~${speed} tok/s | Чанків: ${chunks}`;
+            }
+          }
+        } catch (err) {
+          if (err.name === "AbortError") {
+            output.textContent += "\n\n[Генерацію зупинено користувачем]";
+          } else {
+            output.textContent = `Помилка з'єднання з сервером: ${err.message}`;
+            metrics.textContent = "Помилка";
+          }
+        } finally {
+          btn.disabled = false;
+          stopBtn.style.display = "none";
+          spinner.style.display = "none";
+          btnText.textContent = prevBtnLabel;
+          abortController = null;
+        }
+      }
+
+      checkOllama();
+    </script>
+  </body>
+</html>
